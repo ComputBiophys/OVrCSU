@@ -30,7 +30,7 @@ Our implementation matches the web server results with <1% deviation. Comparativ
 | TRAAK       | 1026/1030 (+4)       | 1035/1036 (+1)       | 918/921 (+3)     | 225/224 (-2/+1)   |
 
 **Note:** 
-- StateA and StateB refer to contacts in the single-basin Go-Martini model with proteins as State A and B (cutoff: 0.3–1.2 nm, 3-residue gap exclusion).  
+- StateA and StateB refer to contacts in the single-basin Go-Martini model with proteins as State A and B (cutoff: 0.3–1.1 nm, 3-residue gap exclusion).  
 - Contacts and Multi_Contacts refer to shared contacts and state-unique contacts in the multiple-basin Go-Martini model, respectively.  
 - Values are shown as Web Server/This Script. The number in the brackets indicates the difference between the web server and this script.
 - "Other" refers to [GoMartini's ContactMapGenerator](https://github.com/Martini-Force-Field-Initiative/GoMartini/tree/main/ContactMapGenerator).
