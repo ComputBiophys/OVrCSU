@@ -1,6 +1,6 @@
 # OVrCSU
 
-OVrCSU is a Python tool for calculating OVrCSU contacts in protein structures. This local implementation provides an alternative when the web server is unavailable.
+OVrCSU is a Python tool for calculating OVrCSU contacts in protein structures. This local implementation provides an alternative when the [web server](http://info.ifpan.edu.pl/~rcsu/rcsu/index.html) is unavailable.
 
 ## Installation
 
