@@ -21,7 +21,7 @@ python OVrCSU.py -f input.pdb -o output.map
 Our implementation matches the web server results with <1% deviation. Comparative results with web server are provided below:
 
 | Protein       | StateA               | StateB               | <td colspan="2">Multiple-Basin      |
-|---------------|----------------------|----------------------|-------------------------------------|
+|---------------|----------------------|----------------------|<td colspan="2">---------------------|
 |               |                      |                      | Contacts         | Multi_Contacts   |
 | GlnBP         | 505/505              | 552/552              | 440/440          | 177/177          |
 | Arc           | 190/190              | 175/176 (+1)         | 96/96            | 173/174 (+1)     |
