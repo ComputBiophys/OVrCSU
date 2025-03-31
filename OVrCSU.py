@@ -1,16 +1,27 @@
-# Update 20250323
-# Author: Song Yang
+"""
+OVrCSU - Protein Contact Surface Unit Analysis Tool
+
+This script calculates atom-atom and residue-residue contacts in protein structures.
+
+Version: 20250323
+Author: Song Yang
+Eamil: yangsong2015@pku.edu.cn
+
+References:
+[1] Wołek, K.; Gómez-Sicilia, À.; Cieplak, M. Determination of contact maps in proteins: A combination of structural and chemical approaches. The Journal of Chemical Physics 2015, 143.
+[2] Yang, S.; Song, C. Multiple-basin Go-Martini for investigating conformational transitions and environmental interactions of proteins. bioRxiv 2024.
+"""
 
 import MDAnalysis as mda
 import numpy as np
 from MDAnalysis.lib.distances import distance_array
 from collections import defaultdict
 
-default_dtype = np.float64
-# 参数配置
-R_WATER = 1.42        # 水分子半径
-FIB_NUMBER = 14      # Fibonacci Number
-ENLARGEMENT_FACTOR = 1.244455060259808  # Default: (26/7)**(1/6)
+# Global parameters
+default_dtype = np.float64  # Default floating-point precision for calculations
+R_WATER = 1.42              # Radius of water molecule in Angstroms (Å)
+FIB_NUMBER = 14             # Number of Fibonacci iterations for sphere point sampling
+ENLARGEMENT_FACTOR = 1.244455060259808  # Scaling factor for van der Waals radii (26/7)**(1/6)
 
 import argparse
 
@@ -31,7 +42,17 @@ pdb_file = args.strfile
 outfile = args.fileout
 
 def CalFibonacci(fib=14, fiba=0, fibb=1):
-    """Calculate the fibonacci number"""
+    """
+    Calculate Fibonacci numbers up to specified index
+    
+    Args:
+        fib (int): Number of Fibonacci iterations (default 14)
+        fiba (int): Starting first number (default 0)
+        fibb (int): Starting second number (default 1)
+        
+    Returns:
+        fib_a, fib_b - Fibonacci numbers at positions fib and fib+1
+    """
     for _ in range(fib):
         fibc = fiba + fibb
         fiba = fibb
@@ -39,7 +60,17 @@ def CalFibonacci(fib=14, fiba=0, fibb=1):
     return fiba, fibb
 
 def fibonacci_sphere(fiba, fibb, radius):
-    """生成斐波那契球面采样点"""
+    """
+    Generate evenly distributed points on a sphere using Fibonacci sampling
+    
+    Args:
+        fiba (int): Fibonacci number F(n)
+        fibb (int): Fibonacci number F(n+1)
+        radius (float): Sphere radius
+        
+    Returns:
+        numpy.ndarray: Array of 3D coordinates (x,y,z) for sampling points
+    """
     indices = np.arange(1, fibb+1, dtype=default_dtype)
     theta = np.arccos(1 - 2*(indices)/fibb)
     phi = np.pi * 2 * indices * fiba / fibb
@@ -48,11 +79,18 @@ def fibonacci_sphere(fiba, fibb, radius):
     z = radius * np.cos(theta)
     return np.stack([x, y, z], axis=1)
 
-# 加载并处理PDB文件
 def RemoveH(PDBFile):
+    """
+    Process PDB file by removing hydrogen atoms and OXT (terminal oxygen)
+    
+    Args:
+        PDBFile (str): Path to input PDB file
+        
+    Writes:
+        _protein_noH.pdb: Processed PDB file without hydrogens
+    """
     u = mda.Universe(PDBFile)
-    sel = u.select_atoms('protein and not name H* OXT')
-    # sel = u.select_atoms('protein and not name H*')
+    sel = u.select_atoms('protein and not name H* OXT')  # Select protein atoms excluding hydrogens and OXT
     sel.atoms.write("_protein_noH.pdb")
 
 RemoveH(pdb_file)
@@ -61,7 +99,7 @@ u = mda.Universe(strfile)
 atoms = u.atoms
 n_atoms = len(atoms)
 
-# 从参数模块导入必要数据
+\
 vdw_dict = {
         'SER': {'N': 1.64,'CA': 1.88,'C': 1.61,'O': 1.42,'CB': 1.88,'OG': 1.46},
         'PRO': {'N': 1.64,'CA': 1.88,'C': 1.61,'O': 1.42,'CB': 1.88,'CG': 1.88,'CD': 1.88},
@@ -86,6 +124,7 @@ vdw_dict = {
 }
 
 
+\
 atom_type_dict = {
         'SER': {'N': 3, 'CA': 7, 'C': 6, 'O': 2, 'CB': 6, 'OG': 1}, 
         'PRO': {'N': 6, 'CA': 4, 'C': 6, 'O': 2, 'CB': 4, 'CG': 4, 'CD': 4}, 
@@ -109,15 +148,7 @@ atom_type_dict = {
         'LEU': {'N': 3, 'CA': 7, 'C': 6, 'O': 2, 'CB': 4, 'CG': 4, 'CD1': 4, 'CD2': 4}
 }
 
-# BOND TYPE
-# Types of contacts:
-# HB -- 1 -- hydrogen-bond
-# PH -- 2 -- hydrophobic
-# AR -- 3 -- aromatic - contacts between aromatic rings
-# IB -- 4 -- ionic bridge - contacts created by two atoms with different charges
-# DC -- 5 -- destabilizing contact - contacts which are in general repulsive
-# OT -- 6 -- denotes negligible other contacts.
-# 1-HB,2-PH,3-AR,4-IP,5-DC,6-OT
+\
 interaction_matrix = np.array([
     [1, 1, 1, 5, 5, 6, 6, 6, 1, 1],  # Class I
     [1, 5, 1, 5, 5, 6, 6, 6, 1, 5],  # Class II
@@ -140,27 +171,27 @@ interaction_type_value_dict ={
     6: 0,
 }
 
-# 预处理原子类型和范德华半径
+# Preprocess atom types and van der Waals radii
 atom_types = [atom_type_dict[atom.resname][atom.name] for atom in atoms]
 vdw_radii = [vdw_dict[atom.resname][atom.name] for atom in atoms]
 
-# 步骤1：计算候选原子对
+# Step 1: Calculate candidate atom pairs
 positions = atoms.positions
-positions = np.array(positions, dtype=default_dtype)  # 转换为numpy数组
-vdw_radii = np.array(vdw_radii, dtype=default_dtype)  # 转换为numpy数组
+positions = np.array(positions, dtype=default_dtype)  # Convert to numpy array
+vdw_radii = np.array(vdw_radii, dtype=default_dtype)  # Convert to numpy array
 cutoffs_matrix = vdw_radii[:, None] + vdw_radii[None, :] + 2 * R_WATER
 dist_matrix = distance_array(positions, positions)
-dist_matrix = np.array(dist_matrix, dtype=default_dtype)  # 转换为numpy数组
+dist_matrix = np.array(dist_matrix, dtype=default_dtype)  # Convert to numpy array
 candidate_pairs = np.argwhere((dist_matrix <= cutoffs_matrix) & (np.triu(np.ones_like(dist_matrix), k=1).astype(bool)))
 
 
-# 构建原子邻居字典
+# Build atom neighbor dictionary
 atom_neighbors = defaultdict(list)
 for i, j in candidate_pairs:
     atom_neighbors[i].append(j)
     atom_neighbors[j].append(i)
 
-# 步骤2：向量化计算格点相互作用
+# Step 2: Vectorized calculation of grid interactions
 interaction_pairs = defaultdict(lambda: {'DISTANCE':0, 'Surf':0, 'S0':0, 'Cont':0})
 
 fiba, fibb = CalFibonacci(fib=FIB_NUMBER, fiba=0, fibb=1)
@@ -174,23 +205,23 @@ for i in atom_neighbors:
     fib_points = fibonacci_sphere(fiba, fibb, radius_i)
     global_points = pos_i + fib_points
     
-    # 处理邻居数据
+    # Process neighbor data
     neighbor_pos = positions[neighbors]
     neighbor_vdw = np.array(vdw_radii, dtype=default_dtype)[neighbors] + R_WATER
     dist_atoms = np.linalg.norm(pos_i - neighbor_pos, axis=1)
     
-    # 向量化距离计算
+    # Vectorized distance calculation
     diffs = global_points[:, np.newaxis, :] - neighbor_pos[np.newaxis, :, :]
     dists = np.linalg.norm(diffs, axis=2)
     mask = dists <= neighbor_vdw[np.newaxis, :]
     
-    # 处理每个采样点
+    # Process each sampling point
     for s in range(fibb):
         valid_js = np.where(mask[s])[0]
         if valid_js.size == 0:
             continue
         
-        # 找到最近的原子的索引
+        # Find the index of the nearest atom
         min_j_idx = valid_js[np.argmin(dist_atoms[valid_js])]
         j = neighbors[min_j_idx]
         
@@ -223,7 +254,7 @@ I - id of interaction type
 
 Surf - surface of interaction in CSU           algorithm
 
-S0 - whole surface of overlap in CSU
+S0 - whole surface of overlap in CSU (Not supported)
 
 Cont - number of contacts between atoms
 ''')
@@ -275,7 +306,7 @@ outfile = outfile
 with open(outfile,'w') as fp:
     fp.writelines(lines)
 
-# 步骤4：统计残基对相互作用
+# Residue pair interactions
 residue_interactions = defaultdict(lambda: {'rCSU':0, 'aSurf':0, 'rSurf':0, 'nSurf':0, 'OV':0})
 
 for (i,j), counts in interaction_pairs.items():
@@ -291,7 +322,7 @@ for (i,j), counts in interaction_pairs.items():
     if res_i.ix == res_j.ix:
         continue
 
-    # 计算相互作用类型
+    # Interaction types
     type_i = atom_types[i]
     type_j = atom_types[j]
     interaction_type = interaction_matrix[type_i-1][type_j-1]
@@ -312,7 +343,7 @@ for (i,j), counts in interaction_pairs.items():
 # positions = atoms.positions
 OV_cutoffs_matrix = (vdw_radii[:, None] + vdw_radii[None, :]) * ENLARGEMENT_FACTOR
 # dist_matrix = distance_array(positions, positions)
-# dist_matrix = np.array(dist_matrix, dtype=default_dtype)  # 转换为numpy数组
+# dist_matrix = np.array(dist_matrix, dtype=default_dtype)  # Convert to numpy array
 OV_candidate_pairs = np.argwhere((dist_matrix <= OV_cutoffs_matrix) & (np.triu(np.ones_like(dist_matrix), k=1).astype(bool)))
 for (i, j) in OV_candidate_pairs:
     atom1 = atoms[i]
@@ -327,7 +358,6 @@ for (i, j) in OV_candidate_pairs:
     residue_interactions[key]['OV'] += 1
 
 # Output 
-
 def ExtactContacts(contact_pair, u, sel='CA'):
     resindex1=contact_pair[0]
     resindex2=contact_pair[1]
@@ -348,7 +378,7 @@ C - chain
 AA - 3-letter code of aminoacid
 DISTANCE - distance between CA
 CMs - contacts in particular contactmaps, OV, CSU, oCSU, rCSU respectively, (CSU do not take into
-account chemical properties of atoms)
+account chemical properties of atoms) (Not supported CSU, oCSU)
 aSurf - surface of attractive connections
 rSurf - surface of repulsive connections
 nSurf - surface of neutral connections
@@ -389,7 +419,6 @@ for i, pair in enumerate(sorted_pairs):
 
     line=f'R {i+1:>6} {I1:>5} {AA1:>4} {C1} {I1_pdb:>4} {I2:>8} {AA2:>4} {C2} {I2_pdb:>4} {dist:>12.4f}     {is_OV} 0 0 {is_rCSU}     {rCSU:>4}   {aSurf:>8.4f}   {rSurf:>8.4f}   {nSurf:>8.4f}\n'
     lines.append(line)
-    # print(line)
 
 
 # Write Contact
