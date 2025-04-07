@@ -99,7 +99,7 @@ u = mda.Universe(strfile)
 atoms = u.atoms
 n_atoms = len(atoms)
 
-\
+
 vdw_dict = {
         'SER': {'N': 1.64,'CA': 1.88,'C': 1.61,'O': 1.42,'CB': 1.88,'OG': 1.46},
         'PRO': {'N': 1.64,'CA': 1.88,'C': 1.61,'O': 1.42,'CB': 1.88,'CG': 1.88,'CD': 1.88},
@@ -124,7 +124,7 @@ vdw_dict = {
 }
 
 
-\
+
 atom_type_dict = {
         'SER': {'N': 3, 'CA': 7, 'C': 6, 'O': 2, 'CB': 6, 'OG': 1}, 
         'PRO': {'N': 6, 'CA': 4, 'C': 6, 'O': 2, 'CB': 4, 'CG': 4, 'CD': 4}, 
@@ -148,7 +148,7 @@ atom_type_dict = {
         'LEU': {'N': 3, 'CA': 7, 'C': 6, 'O': 2, 'CB': 4, 'CG': 4, 'CD1': 4, 'CD2': 4}
 }
 
-\
+
 interaction_matrix = np.array([
     [1, 1, 1, 5, 5, 6, 6, 6, 1, 1],  # Class I
     [1, 5, 1, 5, 5, 6, 6, 6, 1, 5],  # Class II
