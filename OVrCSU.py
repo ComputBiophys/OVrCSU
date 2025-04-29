@@ -28,7 +28,7 @@ import argparse
 parser = argparse.ArgumentParser(description=
 '''
 An example:
-python Contact.py -f strfile.pdb -r vdw_enlargement_factor -o new_OV.map
+python OVrCSU.py -f strfile.pdb -o new_OV.map
 
 ''', formatter_class=argparse.RawTextHelpFormatter)
 
